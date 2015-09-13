@@ -309,11 +309,11 @@ public class DiningListFragment extends SwipeRefreshListFragment {
     /**
      * @param rightNow     - Calendar event for current time
      * @param calEventList - List of CalEvents of a location
-     *                     Basically, the idea is to loop through the CalEvents, checking current time compared to it.
-     *                     If we are before it, we stop, saying we are closed until the event starts.
-     *                     If we are in it, we stop, saying we are open until the event ends.
-     *                     If nothing is found (this is looping through the next NUM_DAYS_OF_EVENTS_TO_GET days),
-     *                     then just return "closed".
+     * Basically, the idea is to loop through the CalEvents, checking current time compared to it.
+     * If we are before it, we stop, saying we are closed until the event starts.
+     * If we are in it, we stop, saying we are open until the event ends.
+     * If nothing is found (this is looping through the next NUM_DAYS_OF_EVENTS_TO_GET days),
+     * then just return "closed".
      */
     private static void setHoursText(TextView hoursTextView, Calendar rightNow,
                                      ArrayList<CalEvent> calEventList) {
