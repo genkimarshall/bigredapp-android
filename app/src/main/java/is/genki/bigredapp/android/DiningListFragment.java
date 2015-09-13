@@ -54,7 +54,7 @@ public class DiningListFragment extends SwipeRefreshListFragment {
     private static final String DINING_LIST_DATE_KEY = "DINING_LIST_DATE_KEY";
     private static final String LAST_REFRESHED_KEY = "LAST_REFRESHED_KEY";
     private static final int NUM_DAYS_OF_EVENTS_TO_GET = 6;
-    
+
     private static Context mContext;
     private JSONArray mDiningList;
     private SharedPreferences mPreferences;
@@ -112,8 +112,7 @@ public class DiningListFragment extends SwipeRefreshListFragment {
     @Override
     public void onListItemClick(ListView l, View v, int position, long id) {
         super.onListItemClick(l, v, position, id);
-        try {
-            String diningHall = (String) mDiningList.get(position);
+            String diningHall = ((DiningHallListAdapter.DiningListViewHolder) v.getTag()).diningHallName;
             Intent intent = new Intent(mContext, DiningLocationActivity.class);
             intent.putExtra(DiningLocationActivity.KEY_DINING_HALL, diningHall);
 
@@ -121,9 +120,6 @@ public class DiningListFragment extends SwipeRefreshListFragment {
             ActivityOptionsCompat options = ActivityOptionsCompat.makeScaleUpAnimation(
                     v, 0, 0, v.getWidth(), v.getHeight());
             mContext.startActivity(intent, options.toBundle());
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
     }
 
     /**
@@ -165,13 +161,13 @@ public class DiningListFragment extends SwipeRefreshListFragment {
 
             // parse the calendar data into an ArrayList<NameCalEventList>
             int mDiningListLen = mDiningList.length();
-            for (int i=0; i<mDiningListLen; i++) {
+            for (int i = 0; i < mDiningListLen; i++) {
                 String name = (String) mDiningList.get(i);
 
                 JSONArray jsonEventList = response.getJSONArray(name);
                 int jsonEventListLen = jsonEventList.length();
                 ArrayList<CalEvent> calEventList = new ArrayList<>();
-                for (int j=0; j<jsonEventListLen; j++) {
+                for (int j = 0; j < jsonEventListLen; j++) {
                     JSONObject jsonEvent = jsonEventList.getJSONObject(j);
 
                     CalEvent calEvent = new CalEvent();
@@ -198,6 +194,8 @@ public class DiningListFragment extends SwipeRefreshListFragment {
             }
 
             ArrayAdapter<NameCalEventList> adapter = (ArrayAdapter<NameCalEventList>) getListAdapter();
+            //Order by what's open
+            Collections.sort(nameCalEventLists);
             if (adapter == null) {
                 adapter = new DiningHallListAdapter(mContext, R.layout.dining_list_row, nameCalEventLists);
                 setListAdapter(adapter);
@@ -216,7 +214,7 @@ public class DiningListFragment extends SwipeRefreshListFragment {
     }
 
     // helper for getDiningCalendarEvents()
-    private static String getRequestCalFormat (Calendar cal) {
+    private static String getRequestCalFormat(Calendar cal) {
         return cal.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.US) +
                 cal.get(Calendar.DAY_OF_MONTH) + "," + cal.get(Calendar.YEAR);
     }
@@ -230,8 +228,8 @@ public class DiningListFragment extends SwipeRefreshListFragment {
         try {
             final StringBuilder builder = new StringBuilder();
             int len = mDiningList.length();
-            for (int i=0; i<len; i++) {
-                    builder.append(mDiningList.get(i)).append(',');
+            for (int i = 0; i < len; i++) {
+                builder.append(mDiningList.get(i)).append(',');
             }
             final String commaSeparatedDiningHalls = builder.toString();
 
@@ -246,12 +244,12 @@ public class DiningListFragment extends SwipeRefreshListFragment {
             // See the "SingletonRequestQueue" Class
             JsonObjectRequest jsonObjectRequest = (JsonObjectRequest)
                     new JsonObjectRequest(Request.Method.GET, diningHallCalendarsUrl,
-                    new Response.Listener<JSONObject>() {
-                @Override
-                public void onResponse(JSONObject response) {
-                    handleCalendarEventsResponse(response);
-                }
-            }, SingletonRequestQueue.getErrorListener(mContext))
+                            new Response.Listener<JSONObject>() {
+                                @Override
+                                public void onResponse(JSONObject response) {
+                                    handleCalendarEventsResponse(response);
+                                }
+                            }, SingletonRequestQueue.getErrorListener(mContext))
                             .setRetryPolicy(SingletonRequestQueue.getRetryPolicy());
             SingletonRequestQueue.getInstance(mContext).addToRequestQueue(jsonObjectRequest);
         } catch (JSONException e) {
@@ -268,16 +266,16 @@ public class DiningListFragment extends SwipeRefreshListFragment {
         if (SingletonRequestQueue.isConnected(mContext)) {
             JsonArrayRequest jsonArrayRequest = (JsonArrayRequest)
                     new JsonArrayRequest(Request.Method.GET, BASE_URL,
-                    new Response.Listener<JSONArray>() {
-                @Override
-                public void onResponse(JSONArray response) {
-                    // cache the result
-                    mPreferences.edit().putString(DINING_LIST_KEY, response.toString()).apply();
-                    mPreferences.edit().putLong(DINING_LIST_DATE_KEY, System.currentTimeMillis()).apply();
-                    mDiningList = response;
-                    getDiningCalendarEvents();
-                }
-            }, SingletonRequestQueue.getErrorListener(mContext))
+                            new Response.Listener<JSONArray>() {
+                                @Override
+                                public void onResponse(JSONArray response) {
+                                    // cache the result
+                                    mPreferences.edit().putString(DINING_LIST_KEY, response.toString()).apply();
+                                    mPreferences.edit().putLong(DINING_LIST_DATE_KEY, System.currentTimeMillis()).apply();
+                                    mDiningList = response;
+                                    getDiningCalendarEvents();
+                                }
+                            }, SingletonRequestQueue.getErrorListener(mContext))
                             .setRetryPolicy(SingletonRequestQueue.getRetryPolicy());
             SingletonRequestQueue.getInstance(mContext).addToRequestQueue(jsonArrayRequest);
         }
@@ -309,13 +307,13 @@ public class DiningListFragment extends SwipeRefreshListFragment {
     }
 
     /**
-     * @param rightNow - Calendar event for current time
+     * @param rightNow     - Calendar event for current time
      * @param calEventList - List of CalEvents of a location
-     * Basically, the idea is to loop through the CalEvents, checking current time compared to it.
-     * If we are before it, we stop, saying we are closed until the event starts.
-     * If we are in it, we stop, saying we are open until the event ends.
-     * If nothing is found (this is looping through the next NUM_DAYS_OF_EVENTS_TO_GET days),
-     *  then just return "closed".
+     *                     Basically, the idea is to loop through the CalEvents, checking current time compared to it.
+     *                     If we are before it, we stop, saying we are closed until the event starts.
+     *                     If we are in it, we stop, saying we are open until the event ends.
+     *                     If nothing is found (this is looping through the next NUM_DAYS_OF_EVENTS_TO_GET days),
+     *                     then just return "closed".
      */
     private static void setHoursText(TextView hoursTextView, Calendar rightNow,
                                      ArrayList<CalEvent> calEventList) {
@@ -376,7 +374,7 @@ public class DiningListFragment extends SwipeRefreshListFragment {
         }
     }
 
-    public static class NameCalEventList {
+    public static class NameCalEventList implements Comparable<NameCalEventList> {
         public final String name;
         public final ArrayList<CalEvent> calEventList;
 
@@ -384,51 +382,80 @@ public class DiningListFragment extends SwipeRefreshListFragment {
             this.name = name;
             this.calEventList = calEventList;
         }
+
+        public int compareTo(@NonNull NameCalEventList cOther) {
+            Calendar rightNow = Calendar.getInstance();
+            int thisStatus = calToRatingInt(rightNow, calEventList);
+            int otherStatus = calToRatingInt(rightNow,cOther.calEventList);
+            return otherStatus - thisStatus;
+        }
     }
 
-    /**
-     * http://developer.android.com/guide/topics/ui/declaring-layout.html#FillingTheLayout
-     * Returns a custom view for an array of CalEvents on their way through the mListView adapter
-     */
-    public class DiningHallListAdapter extends ArrayAdapter<NameCalEventList> {
+        /**
+         * http://developer.android.com/guide/topics/ui/declaring-layout.html#FillingTheLayout
+         * Returns a custom view for an array of CalEvents on their way through the mListView adapter
+         */
+        public class DiningHallListAdapter extends ArrayAdapter<NameCalEventList> {
 
-        final int mResource;
-        final LayoutInflater mInflater;
-        final Pattern p = Pattern.compile("\\b([a-z])");
-        final Calendar mRightNowCal;
+            final int mResource;
+            final LayoutInflater mInflater;
+            final Pattern p = Pattern.compile("\\b([a-z])");
+            final Calendar mRightNowCal;
 
-        public DiningHallListAdapter(Context context, int res, ArrayList<NameCalEventList> items) {
-            super(context, res, items);
-            this.mResource = res;
-            mInflater = LayoutInflater.from(context);
-            mRightNowCal = Calendar.getInstance();
-        }
+            public DiningHallListAdapter(Context context, int res, ArrayList<NameCalEventList> items) {
+                super(context, res, items);
+                this.mResource = res;
+                mInflater = LayoutInflater.from(context);
+                mRightNowCal = Calendar.getInstance();
+            }
 
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            NameCalEventList nameCalEventList = getItem(position);
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                NameCalEventList nameCalEventList = getItem(position);
+
+                // http://developer.android.com/training/improving-layouts/smooth-scrolling.html#ViewHolder
+                // http://lucasr.org/2012/04/05/performance-tips-for-androids-listview/
+                DiningListViewHolder holder;
+                if (convertView == null) {
+                    convertView = mInflater.inflate(this.mResource, parent, false);
+                    holder = new DiningListViewHolder();
+                    holder.nameTextView = (TextView) convertView.findViewById(R.id.dining_list_row_name);
+                    holder.hoursTextView = (TextView) convertView.findViewById(R.id.dining_list_row_hours);
+                    holder.diningHallName = nameCalEventList.name;
+                    convertView.setTag(holder);
+                } else {
+                    holder = (DiningListViewHolder) convertView.getTag();
+                    holder.diningHallName = nameCalEventList.name;
+                }
+
+                if (mTextColor == 0) {
+                    mTextColor = holder.hoursTextView.getCurrentTextColor();
+                }
+
+                setHoursText(holder.hoursTextView, mRightNowCal, nameCalEventList.calEventList);
+
+                // parse the name to make it pretty
+                holder.nameTextView.setText(formatDiningHallName(nameCalEventList.name));
+
+                return convertView;
+            }
 
             // http://developer.android.com/training/improving-layouts/smooth-scrolling.html#ViewHolder
-            // http://lucasr.org/2012/04/05/performance-tips-for-androids-listview/
-            DiningListViewHolder holder;
-            if (convertView == null) {
-                convertView = mInflater.inflate(this.mResource, parent, false);
-                holder = new DiningListViewHolder();
-                holder.nameTextView = (TextView) convertView.findViewById(R.id.dining_list_row_name);
-                holder.hoursTextView = (TextView) convertView.findViewById(R.id.dining_list_row_hours);
-                convertView.setTag(holder);
-            } else {
-                holder = (DiningListViewHolder) convertView.getTag();
+            class DiningListViewHolder {
+                TextView nameTextView;
+                TextView hoursTextView;
+                String diningHallName;
             }
+        }
 
-            if (mTextColor == 0) {
-                mTextColor = holder.hoursTextView.getCurrentTextColor();
-            }
-
-            setHoursText(holder.hoursTextView, mRightNowCal, nameCalEventList.calEventList);
-
-            // parse the name to make it pretty
-            String name = nameCalEventList.name;
+        /**
+         * Converts the API's badly formatted string to something nicer (atrium_cafe becomes Atrium Cafe)
+         *
+         * @param name the name to be formatted
+         * @return the formatted name
+         */
+        protected static String formatDiningHallName(String name) {
+            final Pattern p = Pattern.compile("\\b([a-z])");
             name = name.replace("_", " ");
             Matcher m = p.matcher(name);
             StringBuffer sb = new StringBuffer();
@@ -436,15 +463,38 @@ public class DiningListFragment extends SwipeRefreshListFragment {
                 m.appendReplacement(sb, m.group(1).toUpperCase());
             }
             m.appendTail(sb);
-            holder.nameTextView.setText(sb.toString());
-
-            return convertView;
+            return sb.toString();
         }
 
-        // http://developer.android.com/training/improving-layouts/smooth-scrolling.html#ViewHolder
-        class DiningListViewHolder {
-            TextView nameTextView;
-            TextView hoursTextView;
+    /**
+     * Assigns a rating to a calendar's times to right now where 2 is currently open, 1 is almost open, 0 is closed.
+     * @param rightNow the current calendar instance
+     * @param calEventList the calendar event list to be processed
+     * @return the rating
+     */
+        private static int calToRatingInt(Calendar rightNow,ArrayList<CalEvent> calEventList){
+            int status = 0;
+            for (CalEvent e : calEventList) {
+                Calendar startCal = e.startCal;
+                Calendar endCal = e.endCal;
+                if (rightNow.after(startCal) && rightNow.before(endCal)) {
+                    status = 2;
+                    break; // stop loop here
+                } else if (rightNow.before(startCal)) {
+                    String dayText = "";
+                    int eventDayOfWeek = startCal.get(Calendar.DAY_OF_WEEK);
+                    int rightNowDayOfWeek = rightNow.get(Calendar.DAY_OF_WEEK);
+
+                    int dayDiff = eventDayOfWeek - rightNowDayOfWeek; // difference in day between event and today
+                    if (dayDiff == 0) {
+                        if (startCal.get(Calendar.HOUR_OF_DAY) - rightNow.get(Calendar.HOUR_OF_DAY) <= 2) {
+                            status = 1;
+                        }
+                        break; // stop loop here
+                    }
+                    break; // stop loop here
+                }
+            }
+            return status;
         }
-    }
 }
