@@ -84,7 +84,7 @@ public class SingletonRequestQueue {
         return new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Toast.makeText(context, "Internet timed out :(", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "Internet timed out", Toast.LENGTH_LONG).show();
             }
         };
     }
