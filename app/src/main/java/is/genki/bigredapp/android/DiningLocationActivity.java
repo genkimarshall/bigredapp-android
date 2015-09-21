@@ -21,6 +21,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -36,6 +37,7 @@ public class DiningLocationActivity extends ActionBarActivity {
     private static final String KEY_MEALS = "DiningLocationActivity.MEALS";
     private static final String KEY_MENUS = "DiningLocationActivity.MENUS";
     private static final String KEY_FRAGMENT = "DiningLocationActivity.FRAGMENT";
+    private String[] mealsRequested;
 
     private String mDiningHall;
     private LocationInfoFragment mFragment;
@@ -75,8 +77,7 @@ public class DiningLocationActivity extends ActionBarActivity {
      */
     private void getLocationData() {
         if (SingletonRequestQueue.isConnected(this)) {
-            final String diningHallMenuUrl = DiningListFragment.BASE_URL + "/menu/" + mDiningHall + "/" +
-                    MEALS_LIST[0] + "," + MEALS_LIST[1] + "," + MEALS_LIST[2] + "," + MEALS_LIST[3] + "/MEALS";
+            final String diningHallMenuUrl = getMealRequestString();
             JsonObjectRequest jsonObjectRequest = (JsonObjectRequest)
                     new JsonObjectRequest(Request.Method.GET, diningHallMenuUrl,
                     new Response.Listener<JSONObject>() {
@@ -84,7 +85,7 @@ public class DiningLocationActivity extends ActionBarActivity {
                 public void onResponse(JSONObject response) {
                     try {
                         List<MealMenu> menus = new ArrayList<>();
-                        for (String meal : MEALS_LIST) {
+                        for (String meal : mealsRequested ) {
                             StringBuilder menu = new StringBuilder();
                             JSONObject mealObject = response.getJSONObject(meal);
                             // some menus won't have all the meals (e.g. Brunch), but are still valid
@@ -101,7 +102,7 @@ public class DiningLocationActivity extends ActionBarActivity {
                         if (menus.size() == 0) throw new JSONException("No menus");
                         mFragment.addMenus(menus);
                     } catch (JSONException e) {
-                        mFragment.noMenus();
+                       mFragment.noMenus();
                     }
                 }
             }, SingletonRequestQueue.getErrorListener(this))
@@ -272,5 +273,28 @@ public class DiningLocationActivity extends ActionBarActivity {
         public int getItemCount() {
             return menus.size();
         }
+    }
+
+    /**
+     * Gives meal request string based on time of day
+     * Based on breakfast until 11, brunch until 2, lunch until 3
+     */
+    private String getMealRequestString(){
+       Calendar time = Calendar.getInstance();
+        int now = time.get(Calendar.HOUR_OF_DAY);
+        String meals = MEALS_LIST[3];
+        if( now < 15 ){
+            meals = MEALS_LIST[2] + "," + meals;
+            if( now < 14 ) {
+                meals = MEALS_LIST[1] + "," + meals;
+                if( now < 11 ) {
+                    meals = MEALS_LIST[0] + "," + meals;
+                }
+            }
+        }
+        mealsRequested = meals.split(",");
+
+        return DiningListFragment.BASE_URL + "/menu/" + mDiningHall + "/" +
+                meals + "/MEALS";
     }
 }

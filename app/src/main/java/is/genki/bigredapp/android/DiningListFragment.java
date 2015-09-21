@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
@@ -193,9 +194,23 @@ public class DiningListFragment extends SwipeRefreshListFragment {
                 nameCalEventLists.add(new NameCalEventList(name, calEventList));
             }
 
+
             ArrayAdapter<NameCalEventList> adapter = (ArrayAdapter<NameCalEventList>) getListAdapter();
             //Order by what's open
             Collections.sort(nameCalEventLists);
+
+            //If we are only showing open halls, hide the non-open ones.
+            SharedPreferences settings = mContext.getSharedPreferences("BraPrefs", 0);
+            boolean showOnlyOpenHalls = settings.getBoolean("showOnlyOpenHalls", false);
+            if( showOnlyOpenHalls ){
+                Iterator<NameCalEventList> iter = nameCalEventLists.iterator();
+                while( iter.hasNext()){
+                    NameCalEventList next = iter.next();
+                    if( calToRatingInt(Calendar.getInstance(), next.calEventList) == 0)
+                        iter.remove();
+                }
+            }
+
             if (adapter == null) {
                 adapter = new DiningHallListAdapter(mContext, R.layout.dining_list_row, nameCalEventLists);
                 setListAdapter(adapter);
@@ -399,8 +414,7 @@ public class DiningListFragment extends SwipeRefreshListFragment {
 
             final int mResource;
             final LayoutInflater mInflater;
-            final Pattern p = Pattern.compile("\\b([a-z])");
-            final Calendar mRightNowCal;
+            Calendar mRightNowCal;
 
             public DiningHallListAdapter(Context context, int res, ArrayList<NameCalEventList> items) {
                 super(context, res, items);
@@ -412,6 +426,7 @@ public class DiningListFragment extends SwipeRefreshListFragment {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
                 NameCalEventList nameCalEventList = getItem(position);
+                mRightNowCal = Calendar.getInstance();
 
                 // http://developer.android.com/training/improving-layouts/smooth-scrolling.html#ViewHolder
                 // http://lucasr.org/2012/04/05/performance-tips-for-androids-listview/
@@ -497,4 +512,5 @@ public class DiningListFragment extends SwipeRefreshListFragment {
             }
             return status;
         }
+
 }

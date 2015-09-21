@@ -3,4 +3,10 @@
     xmlns:tools="http://schemas.android.com/tools" tools:context=".MainActivity">
     <item android:id="@+id/action_about" android:title="@string/action_about"
         android:orderInCategory="100" app:showAsAction="never" />
+    <group android:checkableBehavior="all">
+    <item
+        android:id="@+id/menuShowOpen"
+        android:titleCondensed="Open Only"
+        android:title="Open Only"/>
+    </group>
 </menu>

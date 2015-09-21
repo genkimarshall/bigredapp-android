@@ -4,6 +4,7 @@
     <string name="title_activity_dining_location">DiningLocationActivity</string>
 
     <string name="no_menu_available">No menus available for here, yet! But check out an all-you-can-eat place!</string>
+    <string name="no_hall_available">No dining halls appear to be open!  Check later!</string>
 
     <string name="about_title">Big Red App for Android</string>
     <string name="about_description">This app is still in beta stage, and all bug reports, contributions, etc. are appreciated!</string>
