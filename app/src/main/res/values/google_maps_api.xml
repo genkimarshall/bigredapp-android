@@ -1,6 +1,0 @@
-<resources>
-    <!-- Trevor's api key -->
-    <string name="google_maps_key" translatable="false" templateMergeStrategy="preserve">
-        AIzaSyDJnvnDBJo3to1Fmu0cE2t8iCoK6nyJWpM
-    </string>
-</resources>
